@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HyperDeck Monitoring</title>
+    <style>
+        body {
+            margin: 0;
+            background: #1a1a1a;
+            font-family: Arial, sans-serif;
+            color: #fff;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+        }
+        .card {
+            position: relative;
+            border: 4px solid transparent;
+            border-radius: 10px;
+            width: 300px;
+            margin: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            transition: transform 0.2s, border-color 0.5s;
+            background: #2a2a2a;
+        }
+        .card.playing {
+            border-color: #28a745;
+        }
+        .card.paused {
+            border-color: #ffc107;
+        }
+        .card.offline {
+            border-color: #0044cc;
+        }
+        .card.recording {
+            border-color: red;
+            animation: blink-border 1s step-start 0s infinite;
+        }
+        .status {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .progress-bar {
+            height: 10px;
+            background: #555;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 5px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: green;
+            transition: width 0.5s, background 0.5s;
+        }
+        .time {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+        }
+        .blinking {
+            animation: blink-text 1s step-start 0s infinite;
+        }
+        @keyframes blink-text {
+            50% { color: red; }
+        }
+        @keyframes blink-border {
+            50% { border-color: #ff0000; }
+            100% { border-color: transparent; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="deckContainer"></div>
+
+    <script>
+        const decks = [
+            { name: 'HyperDeck 1', ip: '40.40.40.100', filename: 'clip001.mov', status: 'PLAYING', position: 90, duration: 210 },
+            { name: 'HyperDeck 2', ip: '40.40.40.101', filename: 'recording001.mov', status: 'RECORDING', position: 45, duration: 300 },
+            { name: 'HyperDeck 3', ip: '40.40.40.102', filename: 'clip002.mov', status: 'PAUSED', position: 133, duration: 467 },
+            { name: 'HyperDeck 4', ip: '40.40.40.103', filename: '', status: 'OFFLINE', position: 0, duration: 0 },
+        ];
+
+        function renderDecks() {
+            const container = document.getElementById('deckContainer');
+            container.innerHTML = '';
+
+            decks.sort((a, b) => {
+                const statusOrder = { 'RECORDING': 0, 'PLAYING': 1, 'PAUSED': 2, 'OFFLINE': 3 };
+                return statusOrder[a.status] - statusOrder[b.status];
+            });
+
+            decks.forEach(deck => {
+                const card = document.createElement('div');
+                const statusClass = deck.status.toLowerCase();
+                card.className = `card ${statusClass}`;
+
+                const progressPercent = deck.duration ? (deck.position / deck.duration) * 100 : 0;
+                const remaining = deck.duration - deck.position;
+                let barColor = 'green';
+                if (progressPercent >= 90) barColor = 'orange';
+                if (progressPercent >= 97) barColor = 'red';
+
+                const timeRemaining = new Date(remaining * 1000).toISOString().substr(11, 8);
+                const timeClass = remaining <= 10 ? 'blinking' : '';
+
+                card.innerHTML = `
+                    <div class="status">${deck.status}</div>
+                    <div><strong>${deck.name}</strong></div>
+                    <div>${deck.ip}</div>
+                    <div>${deck.filename || 'No file loaded'}</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width:${progressPercent}%; background:${barColor};"></div>
+                    </div>
+                    <div class="time">
+                        <span>${new Date(deck.position * 1000).toISOString().substr(11, 8)}</span>
+                        <span>${new Date(deck.duration * 1000).toISOString().substr(11, 8)}</span>
+                    </div>
+                    <div class="time ${timeClass}">Time Left: ${timeRemaining}</div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        renderDecks();
+        setInterval(renderDecks, 1000);
+    </script>
+</body>
+</html>
