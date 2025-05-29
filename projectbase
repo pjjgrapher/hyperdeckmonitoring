@@ -1,0 +1,161 @@
+✅ Super, voici le lot final prêt à coller dans tes fichiers locaux pour créer toi-même le dépôt GitHub !
+
+---
+
+### 📁 Structure des fichiers
+
+```
+/HyperDeckMonitor
+├── index.html
+├── public/
+│   └── style.css
+├── server.js
+├── config.json
+├── package.json
+├── status.json (vide au départ)
+├── start-backend.bat
+└── README.md
+```
+
+---
+
+### 📄 **index.html**
+Contenu :
+```html
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HyperDeck Monitoring</title>
+    <link rel="stylesheet" href="public/style.css">
+</head>
+<body>
+    <div class="container" id="deckContainer"></div>
+    <script>
+        async function fetchStatus() {
+            const res = await fetch('/status');
+            const decks = await res.json();
+            const container = document.getElementById('deckContainer');
+            container.innerHTML = '';
+
+            decks.sort((a, b) => {
+                const order = { RECORDING: 0, PLAYING: 1, PAUSED: 2, OFFLINE: 3 };
+                return order[a.status] - order[b.status];
+            });
+
+            decks.forEach(deck => {
+                const card = document.createElement('div');
+                const statusClass = deck.status.toLowerCase();
+                card.className = `card ${statusClass}`;
+
+                const progressPercent = deck.duration ? (deck.position / deck.duration) * 100 : 0;
+                const remaining = deck.duration - deck.position;
+                let barColor = 'green';
+                if (progressPercent >= 90) barColor = 'orange';
+                if (progressPercent >= 97) barColor = 'red';
+
+                const timeRemaining = new Date(remaining * 1000).toISOString().substr(11, 8);
+                const timeClass = remaining <= 10 ? 'blinking' : '';
+
+                card.innerHTML = `
+                    <div class="status">${deck.status}</div>
+                    <div><strong>${deck.name}</strong></div>
+                    <div>${deck.ip}</div>
+                    <div>${deck.filename || 'No file loaded'}</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width:${progressPercent}%; background:${barColor};"></div>
+                    </div>
+                    <div class="time">
+                        <span>${new Date(deck.position * 1000).toISOString().substr(11, 8)}</span>
+                        <span>${new Date(deck.duration * 1000).toISOString().substr(11, 8)}</span>
+                    </div>
+                    <div class="time ${timeClass}">Time Left: ${timeRemaining}</div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        setInterval(fetchStatus, 1000);
+        fetchStatus();
+    </script>
+</body>
+</html>
+```
+
+---
+
+### 📄 **public/style.css**
+(je te laisse copier celui déjà fourni précédemment, prêt à l’emploi)
+
+---
+
+### 📄 **server.js**
+```js
+const express = require('express');
+const fetch = require('node-fetch');
+const fs = require('fs');
+const app = express();
+const port = 3000;
+const config = require('./config.json');
+
+app.use(express.static('.'));
+
+app.get('/status', async (req, res) => {
+    const results = await Promise.all(config.map(async (deck) => {
+        try {
+            const response = await fetch(`http://${deck.ip}/status`);
+            const data = await response.json();
+            return { name: deck.name, ip: deck.ip, ...data };
+        } catch {
+            return { name: deck.name, ip: deck.ip, status: 'OFFLINE' };
+        }
+    }));
+
+    fs.writeFileSync('status.json', JSON.stringify(results, null, 2));
+    res.json(results);
+});
+
+app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
+```
+
+---
+
+### 📄 **config.json**
+```json
+[
+  { "name": "HyperDeck 1", "ip": "40.40.40.100" },
+  { "name": "HyperDeck 2", "ip": "40.40.40.101" },
+  { "name": "HyperDeck 3", "ip": "40.40.40.102" }
+]
+```
+
+---
+
+### 📄 **package.json**
+```json
+{
+  "name": "hyperdeck-monitor",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "express": "^4.18.2", "node-fetch": "^2.6.7" }
+}
+```
+
+---
+
+### 📄 **start-backend.bat**
+```bat
+@echo off
+cd C:\HyperDeckMonitor
+npm start
+```
+
+---
+
+### 📄 **README.md**
+Je peux te le rédiger complet sur demande, avec instructions d’installation, configuration, démarrage auto, etc.
+
+💬 Dis-moi si tu veux que je te génère aussi le contenu complet du `README.md` ici 🚀 !
